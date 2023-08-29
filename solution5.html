@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solution1</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="./assets/style.css" />
+  </head>
+  <body>
+    <div class="bg-light pt-4">
+      <div class="container">
+        <div class="row mb-5">
+          <h1>Решение #5</h1>
+        </div>
+        <div class="row mb-4">
+          <div data-editable-target="name">
+            <i>name</i>
+          </div>
+          <div data-editable-target="email">
+            <i>email</i>
+          </div>
+        </div>
+        <div class="row bg-white pt-3">
+          <div class="col">
+            <h3>Код javascript:</h3>
+            <pre class="align-items-left">
+            <code>
+const render = (state, element) => {
+  const elementName = element.dataset.editableTarget;
+  element.innerHTML = "";
+
+  const buildText = () => {
+    if (state.value === "") {
+      const i = document.createElement("i");
+      i.textContent = elementName;
+      return i;
+    }
+
+    return document.createTextNode(state.value);
+  };
+
+  const buildForm = () => {
+    const form = document.createElement("form");
+    const input = document.createElement("input");
+    const submit = document.createElement("input");
+    const label = document.createElement("label");
+
+    label.setAttribute("for", elementName);
+    label.classList.add("sr-only");
+    label.textContent = elementName;
+    input.setAttribute("type", "text");
+    input.setAttribute("name", elementName);
+    input.setAttribute("id", elementName);
+    input.setAttribute("value", state.value);
+
+    submit.setAttribute("type", "submit");
+    submit.setAttribute("value", `Save ${elementName}`);
+    form.append(label, input, submit);
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const value = formData.get(elementName).trim();
+      state.value = value;
+      state.mode = "text";
+      render(state, element);
+    });
+    return { form, input };
+  };
+  switch (state.mode) {
+    case "text": {
+      const text = buildText();
+      element.append(text);
+      break;
+    }
+
+    case "form": {
+      const { form, input } = buildForm();
+      element.append(form);
+      input.focus();
+      break;
+    }
+
+    default:
+      // https://ru.hexlet.io/blog/posts/sovershennyy-kod-defolty-v-svitchah
+      throw new Error(`Unknown mode: ${state.mode}`);
+  }
+};
+
+const app = () => {
+  const elements = document.querySelectorAll("[data-editable-target]");
+  elements.forEach((element) => {
+    const state = {
+      mode: "text",
+      value: "",
+    };
+    element.addEventListener("click", (e) => {
+      if (state.mode === "text") {
+        state.mode = "form";
+        render(state, element);
+      }
+    });
+  });
+};
+app();
+            </code>
+          </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script defer>
+      const render = (state, element) => {
+        const elementName = element.dataset.editableTarget;
+        element.innerHTML = "";
+
+        const buildText = () => {
+          if (state.value === "") {
+            const i = document.createElement("i");
+            i.textContent = elementName;
+            return i;
+          }
+
+          return document.createTextNode(state.value);
+        };
+
+        const buildForm = () => {
+          const form = document.createElement("form");
+          const input = document.createElement("input");
+          const submit = document.createElement("input");
+          const label = document.createElement("label");
+
+          label.setAttribute("for", elementName);
+          label.classList.add("sr-only");
+          label.textContent = elementName;
+          input.setAttribute("type", "text");
+          input.setAttribute("name", elementName);
+          input.setAttribute("id", elementName);
+          input.setAttribute("value", state.value);
+
+          submit.setAttribute("type", "submit");
+          submit.setAttribute("value", `Save ${elementName}`);
+          form.append(label, input, submit);
+          form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const value = formData.get(elementName).trim();
+            state.value = value;
+            state.mode = "text";
+            render(state, element);
+          });
+          return { form, input };
+        };
+        switch (state.mode) {
+          case "text": {
+            const text = buildText();
+            element.append(text);
+            break;
+          }
+
+          case "form": {
+            const { form, input } = buildForm();
+            element.append(form);
+            input.focus();
+            break;
+          }
+
+          default:
+            // https://ru.hexlet.io/blog/posts/sovershennyy-kod-defolty-v-svitchah
+            throw new Error(`Unknown mode: ${state.mode}`);
+        }
+      };
+
+      const app = () => {
+        const elements = document.querySelectorAll("[data-editable-target]");
+        elements.forEach((element) => {
+          const state = {
+            mode: "text",
+            value: "",
+          };
+          element.addEventListener("click", (e) => {
+            if (state.mode === "text") {
+              state.mode = "form";
+              render(state, element);
+            }
+          });
+        });
+      };
+      app();
+    </script>
+  </body>
+</html>
