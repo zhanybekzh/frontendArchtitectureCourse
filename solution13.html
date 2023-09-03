@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solution1</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="./assets/style.css" />
+  </head>
+  <body>
+    <div class="bg-light pt-4">
+      <div class="container">
+        <div class="row mb-5">
+          <h1>Решение #13</h1>
+        </div>
+        <div class="row mb-4">
+          <form id="form" class="col col-sm-8 col-md-5 col-lg-3">
+          </form>
+        </div>
+        <div class="row bg-white pt-3">
+          <div class="col">
+            <h3>Код javascript:</h3>
+            <pre class="align-items-left">
+            <code>
+import i18next from 'i18next';
+import * as yup from 'yup';
+const resources = {
+  ru: {
+    translation: {
+      languages: {
+        ru: 'Русский',
+      },
+      heading: 'Регистрация',
+      username: 'Имя пользователя',
+      password: 'Пароль',
+      confirmPassword: 'Подтвердите пароль',
+      signupBtn: 'Зарегистрироваться',
+      errors: {
+        validation: {
+          required: 'это обязательное поле',
+          confirmPassword: 'Пароли должны совпадать',
+          min_few: 'минимум {{count}} символа',
+          min_many: 'минимум {{count}} символов',
+          max_many: 'максимум {{count}} символов',
+        },
+      },
+    }
+  }
+}
+const renderView = (elements, i18n, state) => {
+  const { form, fields, errorFields } = elements;
+
+  const generateFormControl = (fieldType, fieldName, fieldText) => {
+    const divEl = document.createElement('div');
+    const labelEl = document.createElement('label');
+    const inputEl = document.createElement('input');
+    const errEl = document.createElement('div');
+
+    divEl.classList.add('mb-3');
+    labelEl.classList.add('form-label');
+    inputEl.classList.add('form-control');
+    errEl.classList.add('invalid-feedback');
+
+    labelEl.htmlFor = fieldName;
+    inputEl.id = fieldName;
+    inputEl.type = fieldType;
+    inputEl.name = fieldName;
+    errEl.id = `error-${fieldName}`;
+
+    labelEl.textContent = fieldText;
+
+    divEl.append(labelEl);
+    divEl.append(inputEl);
+    divEl.append(errEl);
+
+    return divEl;
+  };
+
+  const renderForm = () => {
+    const headingEl = document.createElement('h2');
+    headingEl.classList.add('mb-5');
+    headingEl.textContent = i18n.t('heading');
+    form.append(headingEl);
+    const username = generateFormControl('text', 'username', i18n.t('username'));
+    form.append(username);
+    const password = generateFormControl('password', 'password', i18n.t('password'));
+    form.append(password);
+    const confirmPassword = generateFormControl('password', 'confirmPassword', i18n.t('confirmPassword'));
+    form.append(confirmPassword);
+    const button = document.createElement('button');
+    button.type = 'submit';
+    button.classList.add('btn', 'btn-primary', 'mt-3');
+    button.textContent = i18n.t('signupBtn');
+    form.append(button);
+  };
+
+  const getFormElements = () => {
+    fields.username = document.querySelector('#username');
+    fields.password = document.querySelector('#password');
+    fields.confirmPassword = document.querySelector('#confirmPassword');
+
+    const formFields = Object.keys(fields);
+
+    formFields.forEach((field) => {
+      errorFields[field] = document.querySelector(`#error-${field}`);
+    });
+  };
+
+  const handleErrors = () => {
+    const formFields = Object.keys(fields);
+    formFields.forEach((item) => {
+      if (!state.form.errors[item]) {
+        fields[item].classList.remove('is-invalid');
+        fields[item].classList.add('is-valid');
+      } else {
+        fields[item].classList.add('is-invalid');
+        fields[item].classList.remove('is-valid');
+        const itemErrors = state.form.errors[item];
+        itemErrors.forEach((error) => {
+          errorFields[item].textContent = i18n.t(error.key, error.values);
+        });
+      }
+    });
+  };
+
+  const clearErrors = () => {
+    Object.values(errorFields).forEach((field) => {
+      field.textContent = '';
+    });
+  };
+
+  const watchedState = onChange(state, (path) => {
+    switch (path) {
+      case 'form.status':
+        renderForm();
+        getFormElements();
+        break;
+      case 'form.errors':
+        handleErrors();
+        break;
+      case 'form.valid':
+        clearErrors();
+        break;
+      default:
+        break;
+    }
+  });
+
+  return watchedState;
+};
+const app = async () => {
+  const elements = {
+    form: document.querySelector('#form'),
+    fields: {},
+    errorFields: {},
+  };
+
+  const defaultLang = 'ru';
+
+  const state = {
+    form: {
+      status: null,
+      valid: false,
+      errors: [],
+    },
+  };
+
+  yup.setLocale({
+    mixed: {
+      required: () => ({ key: 'errors.validation.required' }),
+      oneOf: () => ({ key: 'errors.validation.confirmPassword' }),
+    },
+    string: {
+      min: ({ min }) => ({ key: 'errors.validation.min', values: { count: min } }),
+      max: ({ max }) => ({ key: 'errors.validation.max', values: { count: max } }),
+    },
+  });
+
+  const i18n = i18next.createInstance();
+  await i18n.init({
+    lng: defaultLang,
+    debug: false,
+    resources,
+  });
+
+  const watchedState = renderView(elements, i18n, state);
+  watchedState.form.status = 'filling';
+
+  const schema = yup.object({
+    username: yup.string().required().min(3).max(10),
+    password: yup.string().required().min(6).max(12),
+    confirmPassword: yup.string().required().oneOf([yup.ref('password')]),
+  });
+
+  elements.form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const newUser = Object.fromEntries(formData);
+    try {
+      await schema.validate(newUser, { abortEarly: false });
+      watchedState.form.errors = [];
+      watchedState.form.valid = true;
+    } catch (err) {
+      const validationErrors = err.inner.reduce((acc, cur) => {
+        const { path, message } = cur;
+        const errorData = acc[path] || [];
+        return { ...acc, [path]: [...errorData, message] };
+      }, {});
+      watchedState.form.errors = validationErrors;
+    }
+  });
+};
+app();
+
+            </code>
+          </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script defer src="./assets/bundle13.js">
+    </script>
+  </body>
+</html>
