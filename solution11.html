@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solution1</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="./assets/style.css" />
+  </head>
+  <body>
+    <div class="bg-light pt-4">
+      <div class="container">
+        <div class="row mb-5">
+          <h1>Решение #</h1>
+        </div>
+        <div class="row mb-4">
+          <div role="alert" aria-live="assertive" aria-atomic="true" class="toast" data-bs-delay="1000" data-bs-autohide="true"
+            style="position: absolute; top: 0; right: 0;">
+          <div class="toast-body">
+          </div>
+        </div>
+        <h1 class="p-3">Todos</h1>
+        <form id="todo-form" class="form-inline mb-3 align-items-start">
+            <div class="form-group">
+                <input id="todo-input" type="text" class="form-control w-25 mr-2 mb-3" name="name" placeholder="New todo">
+            </div>
+            <button id="todo-submit" class="btn btn-primary" type="submit">Save</button>
+        </form>
+        <ul id="todos" class="list-group"></ul>
+        </div>
+        <div class="row bg-white pt-3">
+          <div class="col">
+            <h3>Код javascript:</h3>
+            <pre class="align-items-left">
+            <code>
+import axios from 'axios';
+import * as yup from 'yup';
+import _ from 'lodash';
+import onChange from 'on-change';
+import $ from 'jquery';
+
+const schema = yup.object().shape({
+  this: yup.string().min(3).max(30).required(),
+});
+
+const renderErrorsHandler = (alert, elements) => {
+  const errorMessage = alert.error.this !== undefined
+    ? alert.error.this.message
+    : alert.error.this;
+  if (errorMessage) {
+    elements.input.classList.add('is-invalid');
+  } else {
+    elements.input.classList.remove('is-invalid');
+  }
+  const fedebackPart = elements.input.nextElementSibling;
+  if (fedebackPart !== null) {
+    fedebackPart.remove();
+  }
+  const feedbackElement = document.createElement('div');
+  feedbackElement.classList.add('invalid-feedback');
+  feedbackElement.textContent = errorMessage;
+  elements.input.after(feedbackElement);
+};
+
+const makeListHandler = (response, elements) => {
+  const listContainer = elements.todoList;
+  const taskName = response.this;
+  const taskElement = document.createElement('li');
+  taskElement.textContent = taskName;
+  listContainer.append(taskElement);
+  elements.submit.disabled = false;
+  elements.input.disabled = false;
+};
+
+const processErrorHandler = async (error, elements) => {
+  elements.toastBody.textContent = error;
+  const el = $('.toast');
+  el.show();
+  setTimeout(() => el.hide(), 5000);
+};
+
+const handleProcessState = (elements, process) => {
+  switch (process) {
+    case 'filling':
+      elements.input.disabled = false;
+      elements.submit.disabled = false;
+      break;
+
+    case 'sending':
+      elements.submit.disabled = true;
+      elements.input.disabled = true;
+      break;
+
+    case 'error':
+      elements.submit.disabled = false;
+      break;
+
+    case 'success':
+      elements.form.reset();
+      elements.form.focus();
+      break;
+
+    default:
+      throw new Error(`Unknown process ${process}`);
+  }
+};
+
+const initView = (elements) => (path, value) => {
+  switch (path) {
+    case 'form.processState':
+      handleProcessState(elements, value);
+      break;
+
+    case 'form.errors':
+      renderErrorsHandler(value, elements);
+      break;
+
+    case 'form.response':
+      makeListHandler(value, elements);
+      break;
+
+    case 'form.processError':
+      processErrorHandler(value, elements);
+      break;
+
+    default:
+      break;
+  }
+};
+const validate = (fields) => {
+  try {
+    schema.validateSync(fields, { abortEarly: false });
+    return {};
+  } catch (e) {
+    return _.keyBy(e.inner, 'path');
+  }
+};
+
+const routes = {
+  usersPath: () => '/todos',
+};
+
+const netWorkError = () => 'Network Problems. Try again.';
+
+const app = () => {
+  const state = {
+    form: {
+      field: {
+        this: '',
+      },
+      processState: '',
+      response: {},
+      errors: {},
+      processError: null,
+    },
+  };
+
+  const elements = {
+    input: document.getElementById('todo-input'),
+    submit: document.getElementById('todo-submit'),
+    form: document.getElementById('todo-form'),
+    todoList: document.getElementById('todos'),
+    toastBody: document.querySelector('.toast-body'),
+  };
+
+  const watchState = onChange(state, initView(elements));
+
+  elements.input.addEventListener('input', (e) => {
+    e.preventDefault();
+    watchState.form.processState = 'filling';
+    const { value } = e.target;
+    watchState.form.field.this = value.trim();
+    const error = validate(watchState.form.field);
+    watchState.form.errors = { error };
+  });
+
+  elements.form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    watchState.form.processState = 'sending';
+    const error = validate(watchState.form.field);
+    watchState.form.errors = { error };
+
+    if (!_.isEmpty(watchState.form.errors.error)) {
+      watchState.form.processState = 'filling';
+      return;
+    }
+
+    try {
+      const response = await axios.post(routes.usersPath(), { todo: watchState.form.field });
+      watchState.form.response = response.data;
+      watchState.form.field.this = '';
+      watchState.form.processState = 'success';
+    } catch (err) {
+      const response = {
+        id:1,
+        this: '',
+      }
+      watchState.form.response = {...response, ...watchState.form.field}
+      watchState.form.field.this = '';
+      watchState.form.processState = 'success';
+      
+      // watchState.form.processState = 'error';
+      // watchState.form.processError = netWorkError();
+    }
+  });
+};
+app();
+              
+            </code>
+          </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script defer src="./assets/bundle11.js">
+    </script>
+  </body>
+</html>
